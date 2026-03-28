@@ -1,31 +1,62 @@
-Mini Garbage Collector (42 Project Edition) 🧹
-A lightweight memory management system for C projects. It uses a Central Registry (linked list) and a Static Manager to track all allocations, allowing for a single-point cleanup to prevent memory leaks.
+GC-Malloc: A Simple C Garbage Collector
+A lightweight wrapper for malloc and free that tracks allocations in a linked list, allowing for easy mass-deallocation and leak prevention.
 
-🛠️ The Functions
+🚀 Features
+Centralized Tracking: Every allocation is registered in a static linked list behind the scenes.
 
-1. get_manger (The Manager) 🎮
-   What it does: Houses a static pointer to the head of your linked list.
-   How it works: In C, a static variable inside a function is initialized only once and stays alive until the program ends.
-   Why we need it: It acts as a "hidden" global variable. This allows any part of your program to access the same memory list without you having to pass a pointer (t_list_gc \*\*) through every single function in your project.
+Mass Cleanup: Free every byte of allocated memory with a single function call.
 
-2. ft_malloc (The Wrapper) 🎁
-   What it does: Replaces the standard malloc.
+Safe Exits: Ensure no memory is leaked even during a crash or forced error exit.
 
-It calls the real malloc for the size you requested.
+Standard Compatibility: Drop-in replacements for standard memory management functions.
 
-It creates a new "Node" (a small piece of memory) to store that address.
+🛠️ Implementation Details
+The system uses a Singly Linked List to store the addresses of all active allocations.
 
-It links that Node into the list managed by get_manger.
-Why we need it: It automates the tracking. You don't have to remember which pointers you've created; the collector "registers" them the moment they are born.
+The Structure
+C
+typedef struct s_list_gc {
+void *address;
+struct s_list_gc *next;
+} t_list_gc;
+📖 Usage
 
-3. free_all (The Janitor) 🧹
-   What it does: The "Kill Switch."
+1. Standard Allocation
+   Use ft_malloc exactly like the standard malloc. It returns NULL if either the requested memory or the tracking node fails to allocate.
 
-It loops through the linked list.
+C
+char _str = ft_malloc(sizeof(char) _ 15); 2. Manual Free
+If you want to free a specific pointer before the program ends (to keep memory usage low), use ft_free. It unhooks the pointer from the collector and safely frees the memory.
 
-For every node, it calls free() on the user's data (address).
+C
+ft_free(str); 3. Total Cleanup (No Leaks)
+Call free_all() at the very end of your main() function. This acts as a safety net that catches and frees any pointers you forgot to clean up manually.
 
-It then free()s the node itself.
+C
+int main(void) {
+// ... your program logic ...
 
-Finally, it sets the manager's head to NULL.
-Why we need it: Instead of writing 100 lines of free() at the end of minishell or cub3d, you call this one function. It ensures a 100% clean heap, even if your program exits unexpectedly due to an error.
+    free_all();
+    return (0);
+
+} 4. Emergency Exit
+If a critical error occurs (like a failed file open or a nested allocation failure), use ft_panic. This will attempt to free the immediate failing pointer, wipe the rest of the tracked memory, and exit the program with status 1.
+
+C
+void \*data = ft_malloc(100);
+if (!data)
+ft_panic(NULL);
+⚠️ Performance Notes
+This collector prioritizes safety over raw speed.
+
+ft_malloc: O(1) - Very fast (prepends the tracking node to the head of the list).
+
+ft_free: O(n) - Requires searching the list to find the specific pointer to unlink it.
+
+free_all: O(n) - Iterates exactly once through the entire active list.
+
+⚙️ Compilation
+Ensure both the header and source files are in your directory, then compile as usual:
+
+Bash
+gcc -Wall -Wextra -Werror main.c ft_malloc.c -o my_program

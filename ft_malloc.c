@@ -38,3 +38,23 @@ void ft_panic(void *ptr) {
   free_all();
   exit(1);
 }
+
+void ft_free(void *ptr) {
+  if (!ptr)
+    return;
+  t_list_gc *curr = *get_manger();
+  t_list_gc *prev = NULL;
+  while (curr) {
+    if (curr->address == ptr) {
+      if (prev)
+        prev->next = curr->next;
+      else
+        *get_manger() = curr->next;
+      free(curr->address);
+      free(curr);
+      return;
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+}

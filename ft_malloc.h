@@ -11,5 +11,5 @@ void ft_panic(void *ptr);
 void free_all(void);
 void *ft_malloc(size_t size);
 t_list_gc **get_manger(void);
-
+void ft_free(void *ptr);
 #endif
