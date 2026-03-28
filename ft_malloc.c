@@ -6,7 +6,7 @@
 /*   By: tlaghzal <tlaghzal@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/28 05:59:46 by tlaghzal          #+#    #+#             */
-/*   Updated: 2026/03/28 06:02:15 by tlaghzal         ###   ########.fr       */
+/*   Updated: 2026/03/28 06:13:12 by tlaghzal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 t_list_gc	**get_manger(void)
 {
 	static t_list_gc	*gc = NULL;
+
 	return (&gc);
 }
 
