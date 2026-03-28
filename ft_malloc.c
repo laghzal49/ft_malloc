@@ -7,25 +7,22 @@ t_list_gc **get_manger(void) {
 }
 
 void *ft_malloc(size_t size) {
-  void *ptr = malloc(size);
-  if (!ptr)
+  t_list_gc *node = malloc(sizeof(t_list_gc) + size);
+  if (!node)
     return (NULL);
-  t_list_gc *new = malloc(sizeof(t_list_gc));
-  if (!new) {
-    free(ptr);
-    return (NULL);
+  node->next = *get_manger();
+  node->prev = NULL;
+  if (*get_manger() != NULL) {
+    (*get_manger())->prev = node;
   }
-  new->address = ptr;
-  new->next = *get_manger();
-  *get_manger() = new;
-  return (ptr);
+  *get_manger() = node;
+  return (node + 1);
 }
 
 void free_all(void) {
   t_list_gc *curr = *get_manger();
   while (curr) {
     t_list_gc *next = curr->next;
-    free(curr->address);
     free(curr);
     curr = next;
   }
@@ -34,7 +31,7 @@ void free_all(void) {
 
 void ft_panic(void *ptr) {
   if (ptr)
-    free(ptr);
+    ft_free(ptr);
   free_all();
   exit(1);
 }
@@ -42,19 +39,12 @@ void ft_panic(void *ptr) {
 void ft_free(void *ptr) {
   if (!ptr)
     return;
-  t_list_gc *curr = *get_manger();
-  t_list_gc *prev = NULL;
-  while (curr) {
-    if (curr->address == ptr) {
-      if (prev)
-        prev->next = curr->next;
-      else
-        *get_manger() = curr->next;
-      free(curr->address);
-      free(curr);
-      return;
-    }
-    prev = curr;
-    curr = curr->next;
-  }
+  t_list_gc *node = (t_list_gc *)ptr - 1;
+  if (node->prev)
+    node->prev->next = node->next;
+  else
+    *get_manger() = node->next;
+  if (node->next)
+    node->next->prev = node->prev;
+  free(node);
 }

@@ -1,62 +1,169 @@
-GC-Malloc: A Simple C Garbage Collector
-A lightweight wrapper for malloc and free that tracks allocations in a linked list, allowing for easy mass-deallocation and leak prevention.
+# ft_malloc
 
-🚀 Features
-Centralized Tracking: Every allocation is registered in a static linked list behind the scenes.
+> A lightweight garbage collector for C — by [tlaghzal](https://github.com/tlaghzal)
 
-Mass Cleanup: Free every byte of allocated memory with a single function call.
+Tracks heap allocations in a doubly linked list embedded directly inside each allocation. No separate bookkeeping, no global variables, one `free` per block.
 
-Safe Exits: Ensure no memory is leaked even during a crash or forced error exit.
+---
 
-Standard Compatibility: Drop-in replacements for standard memory management functions.
+## Memory layout
 
-🛠️ Implementation Details
-The system uses a Singly Linked List to store the addresses of all active allocations.
+Every `ft_malloc(size)` call allocates a single contiguous block:
 
-The Structure
-C
-typedef struct s_list_gc {
-void *address;
-struct s_list_gc *next;
-} t_list_gc;
-📖 Usage
+```
+┌─────────────────────┬──────────────────┐
+│   t_list_gc header  │   user data      │
+│   (prev · next)     │   (size bytes)   │
+└─────────────────────┴──────────────────┘
+▲                      ▲
+node                   node + 1  ← returned to caller
+```
 
-1. Standard Allocation
-   Use ft_malloc exactly like the standard malloc. It returns NULL if either the requested memory or the tracking node fails to allocate.
+The header sits immediately before the user data. `ft_free` and `ft_panic` recover it with `(t_list_gc *)ptr - 1`.
 
-C
-char _str = ft_malloc(sizeof(char) _ 15); 2. Manual Free
-If you want to free a specific pointer before the program ends (to keep memory usage low), use ft_free. It unhooks the pointer from the collector and safely frees the memory.
+---
 
-C
-ft_free(str); 3. Total Cleanup (No Leaks)
-Call free_all() at the very end of your main() function. This acts as a safety net that catches and frees any pointers you forgot to clean up manually.
+## API
 
-C
+```c
+void  *ft_malloc(size_t size);   // allocate and track
+void   ft_free(void *ptr);       // unlink and free one allocation
+void   free_all(void);           // free every tracked allocation
+void   ft_panic(void *ptr);      // free ptr + all allocations, exit(1)
+```
+
+---
+
+## Usage
+
+```c
 int main(void) {
-// ... your program logic ...
+    char *buf = ft_malloc(64);
+    if (!buf)
+        ft_panic(NULL);
 
+    int *arr = ft_malloc(10 * sizeof(int));
+    if (!arr)
+        ft_panic(buf);   // ft_free(buf) + free_all() + exit(1)
+
+    // ... use buf and arr ...
+
+    ft_free(buf);   // early individual free
+    free_all();     // clean up the rest
+    return 0;
+}
+```
+
+---
+
+## How it works
+
+### Global list head
+
+```c
+t_list_gc **get_manger(void) {
+    static t_list_gc *gc = NULL;
+    return (&gc);
+}
+```
+
+The list head is a `static` local — no global variable. The function returns a pointer-to-pointer so callers can mutate the head directly.
+
+### Insertion (prepend, O(1))
+
+```
+Before:  gc → [B] → [C] → NULL
+After:   gc → [A] → [B] → [C] → NULL
+```
+
+```c
+node->next = *get_manger();
+node->prev = NULL;
+if (*get_manger())
+    (*get_manger())->prev = node;
+*get_manger() = node;
+return (node + 1);
+```
+
+### Removal (O(1))
+
+```c
+t_list_gc *node = (t_list_gc *)ptr - 1;  // recover header
+
+if (node->prev)
+    node->prev->next = node->next;
+else
+    *get_manger() = node->next;           // node was the head
+
+if (node->next)
+    node->next->prev = node->prev;
+
+free(node);                               // frees header + user data
+```
+
+### Bulk cleanup
+
+```c
+t_list_gc *curr = *get_manger();
+while (curr) {
+    t_list_gc *next = curr->next;   // save before freeing
+    free(curr);
+    curr = next;
+}
+*get_manger() = NULL;
+```
+
+### Panic
+
+```c
+void ft_panic(void *ptr) {
+    if (ptr)
+        ft_free(ptr);   // NOT raw free() — ptr is node+1, not the block start
     free_all();
-    return (0);
+    exit(1);
+}
+```
 
-} 4. Emergency Exit
-If a critical error occurs (like a failed file open or a nested allocation failure), use ft_panic. This will attempt to free the immediate failing pointer, wipe the rest of the tracked memory, and exit the program with status 1.
+---
 
-C
-void \*data = ft_malloc(100);
-if (!data)
-ft_panic(NULL);
-⚠️ Performance Notes
-This collector prioritizes safety over raw speed.
+## Design
 
-ft_malloc: O(1) - Very fast (prepends the tracking node to the head of the list).
+| Property               | Detail                                                                   |
+| ---------------------- | ------------------------------------------------------------------------ |
+| **Intrusive list**     | Metadata lives inside the allocation — no extra `malloc` per node        |
+| **Single block**       | `sizeof(t_list_gc) + size` in one allocation, one `free` to release both |
+| **O(1) insert/remove** | Doubly linked, no traversal needed                                       |
+| **No globals**         | Head is a `static` local accessed via returned pointer                   |
 
-ft_free: O(n) - Requires searching the list to find the specific pointer to unlink it.
+---
 
-free_all: O(n) - Iterates exactly once through the entire active list.
+## Common mistakes
 
-⚙️ Compilation
-Ensure both the header and source files are in your directory, then compile as usual:
+| Mistake                                            | Why it breaks                                             |
+| -------------------------------------------------- | --------------------------------------------------------- |
+| `free(ptr)` on a `ft_malloc`'d pointer             | `ptr` is `node+1` — not the block start → heap corruption |
+| Using `free_all` without saving `next` first       | Use-after-free on next iteration                          |
+| Calling raw `free` in `ft_panic` before `free_all` | Double-free on the same node                              |
 
-Bash
-gcc -Wall -Wextra -Werror main.c ft_malloc.c -o my_program
+---
+
+## Header
+
+```c
+typedef struct s_list_gc {
+    struct s_list_gc *prev;
+    struct s_list_gc *next;
+} t_list_gc;
+
+t_list_gc **get_manger(void);
+void       *ft_malloc(size_t size);
+void        ft_free(void *ptr);
+void        free_all(void);
+void        ft_panic(void *ptr);
+```
+
+---
+
+<p align="center">
+  <sub>42 School project · tlaghzal</sub>
+</p>

@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 typedef struct s_list_gc {
-  void *address;
+  struct s_list_gc *prev;
   struct s_list_gc *next;
 } t_list_gc;
 
