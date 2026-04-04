@@ -64,14 +64,6 @@ void	free_all(void)
 	pthread_mutex_unlock(get_malloc_mutex());
 }
 
-void	ft_panic(void *ptr)
-{
-	if (ptr)
-		ft_free(ptr);
-	free_all();
-	exit(1);
-}
-
 void	ft_free(void *ptr)
 {
 	t_list_gc	*node;

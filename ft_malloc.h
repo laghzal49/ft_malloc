@@ -28,6 +28,5 @@ void		free_all(void);
 void		*ft_malloc(size_t size);
 t_list_gc	**get_manger(void);
 void		ft_free(void *ptr);
-pthread_mutex_t	*get_malloc_mutex(void);
 
 #endif
