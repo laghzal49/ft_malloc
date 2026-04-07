@@ -20,13 +20,13 @@ typedef struct s_list_gc
 {
 	struct s_list_gc	*prev;
 	struct s_list_gc	*next;
-	pthread_t			thread;
+	void				*pad1;
+	void				*pad2;
 }	t_list_gc;
 
-void		ft_panic(void *ptr);
 void		free_all(void);
 void		*ft_malloc(size_t size);
-t_list_gc	**get_manger(void);
+t_list_gc	**get_manager(void);
 void		ft_free(void *ptr);
 
 #endif

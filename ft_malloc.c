@@ -13,7 +13,7 @@
 #include "ft_malloc.h"
 #include <stdlib.h>
 
-t_list_gc	**get_manger(void)
+t_list_gc	**get_manager(void)
 {
 	static t_list_gc	*gc = NULL;
 
@@ -38,11 +38,11 @@ void	*ft_malloc(size_t size)
 		pthread_mutex_unlock(get_malloc_mutex());
 		return (NULL);
 	}
-	node->next = *get_manger();
+	node->next = *get_manager();
 	node->prev = NULL;
-	if (*get_manger() != NULL)
-		(*get_manger())->prev = node;
-	*get_manger() = node;
+	if (*get_manager() != NULL)
+		(*get_manager())->prev = node;
+	*get_manager() = node;
 	pthread_mutex_unlock(get_malloc_mutex());
 	return (node + 1);
 }
@@ -53,14 +53,14 @@ void	free_all(void)
 	t_list_gc	*next;
 
 	pthread_mutex_lock(get_malloc_mutex());
-	curr = *get_manger();
+	curr = *get_manager();
 	while (curr)
 	{
 		next = curr->next;
 		free(curr);
 		curr = next;
 	}
-	*get_manger() = NULL;
+	*get_manager() = NULL;
 	pthread_mutex_unlock(get_malloc_mutex());
 }
 
@@ -75,7 +75,7 @@ void	ft_free(void *ptr)
 	if (node->prev)
 		node->prev->next = node->next;
 	else
-		*get_manger() = node->next;
+		*get_manager() = node->next;
 	if (node->next)
 		node->next->prev = node->prev;
 	free(node);

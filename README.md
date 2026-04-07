@@ -1,20 +1,20 @@
-# ft_malloc
+# ft_malloc - A C Garbage Collector
 
 A custom thread-safe memory allocator with garbage collection capabilities for C.
 
 ## 📖 Overview
 
-`ft_malloc` is a lightweight memory management library designed to simplify dynamic memory allocation in C. It wraps standard `malloc` and `free` calls in a doubly-linked list structure, allowing for:
+`ft_malloc` is a lightweight memory management library and garbage collector designed to simplify dynamic memory allocation in C. It wraps standard `malloc` and `free` calls in a doubly-linked list structure, allowing for:
 - **Automatic Tracking**: Every allocation is tracked in a global list.
-- **Garbage Collection**: `free_all()` allows you to clean up all allocations at once.
+- **Garbage Collection**: `free_all()` allows you to clean up all allocations at once, acting as a simple but effective garbage collector.
 - **Thread Safety**: Built-in mutex locks ensure safe concurrent access from multiple threads.
+- **Aligned Memory**: Returns perfectly aligned memory for safe usage with all standard types.
 
 ## ✨ Features
 
+- ✅ **Garbage Collector**: Instantly clean up all tracked memory with `free_all()`.
 - ✅ **Thread-Safe**: Uses `pthread_mutex_t` to protect the allocation list.
 - ✅ **Custom Allocator**: `ft_malloc` and `ft_free` replace standard functions.
-- ✅ **Bulk Free**: `free_all()` cleans up all tracked memory instantly.
-- ✅ **Panic Handling**: `ft_panic()` for safe error exits with memory cleanup.
 - ✅ **Zero External Dependencies**: Only requires standard C libraries and pthreads.
 
 ## 🛠️ Compilation
@@ -58,7 +58,7 @@ int main() {
 
     // Do work...
 
-    // Free everything at once
+    // The Garbage Collector frees everything at once
     free_all();
     return 0;
 }
@@ -84,8 +84,7 @@ void *thread_func(void *arg) {
 |----------|-------------|
 | `void *ft_malloc(size_t size)` | Allocates `size` bytes and tracks it in the global list. |
 | `void ft_free(void *ptr)` | Frees a specific allocation and removes it from the list. |
-| `void free_all(void)` | Frees all tracked allocations and resets the list. |
-| `void ft_panic(void *ptr)` | Frees `ptr` (if not NULL), calls `free_all()`, and exits with code 1. |
+| `void free_all(void)` | Frees all tracked allocations and resets the list (Garbage Collector). |
 
 ## 🧪 Testing
 
@@ -101,7 +100,6 @@ The test spawns 5 threads, each performing 100 allocations and frees, verifying 
 ## 👤 Author
 
 - **tlaghzal** - [42 Student](https://profile.intra.42.fr)
-
 ## 📄 License
 
 This project is part of the 42 School curriculum.
